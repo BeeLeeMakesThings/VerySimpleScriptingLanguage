@@ -1,4 +1,5 @@
 ﻿using System;
+using VSS.Compiler.Lexer;
 
 namespace VSS
 {
@@ -6,7 +7,20 @@ namespace VSS
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            Lexer lexer = new Lexer(@"int x 123 123.54 xyz if while whilea _jello = +-*/");
+
+            LexedToken token;
+            do
+            {
+                token = lexer.GetNextToken();
+                if (token == null)
+                    return;
+
+                Console.WriteLine(token.ToString());
+            }
+            while (token != null);
         }
+
+        
     }
 }
