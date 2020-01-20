@@ -7,7 +7,7 @@ namespace VSS
     {
         static void Main(string[] args)
         {
-            Lexer lexer = new Lexer(@"int x 123 123.54 xyz if while whilea _jello = +-*/");
+            Lexer lexer = new Lexer("int x 123 123.54 \nxyz if while whilea\n _jello = +-*/ {} if() \"abc123\\\"hello\"");
 
             LexedToken token;
             do

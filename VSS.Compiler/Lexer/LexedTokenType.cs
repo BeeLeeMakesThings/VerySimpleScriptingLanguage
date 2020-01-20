@@ -17,6 +17,14 @@ namespace VSS.Compiler.Lexer
 
         Keyword,
 
+        OpenBraces,
+        CloseBraces,
+
+        OpenParen,
+        CloseParen,
+        
+        String,
+
         Invalid
     }
 }

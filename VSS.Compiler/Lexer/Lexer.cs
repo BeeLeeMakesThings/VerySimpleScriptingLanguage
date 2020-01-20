@@ -21,6 +21,8 @@ namespace VSS.Compiler.Lexer
 
         private int lineNumber;
         private int positionNumber;
+        private int currentLineNumber;
+        private int currentLexedPosition;
         private StringBuilder currentValue;
         private LexerStateFunction StateFunction;
 
@@ -29,8 +31,9 @@ namespace VSS.Compiler.Lexer
 
         // for number lexing
         private bool hasDecimalPlace;
-
+        
         private HashSet<string> keywords;
+        private Dictionary<char, char> escapeLookup;
 
         /// <summary>
         /// Lexes the input stream. The owner of <paramref name="stream"/> is responsible for 
@@ -69,8 +72,17 @@ namespace VSS.Compiler.Lexer
                 "while"
             };
 
-            lineNumber = 1;
-            positionNumber = 1;
+            escapeLookup = new Dictionary<char, char>
+            {
+                { 'n', '\n' },
+                { 'r', '\r' },
+                { 't', '\t' },
+                { '\\', '\\' },
+                { '"', '"' }
+            };
+
+            lineNumber = currentLineNumber = 1;
+            positionNumber = currentLexedPosition = 0; // cause we gonna call NextChar one time first.
             isEOF = false;
             currentValue = new StringBuilder(string.Empty);
             StateFunction = RootState;
@@ -127,7 +139,7 @@ namespace VSS.Compiler.Lexer
                 if (currentChar == '\n')
                 {
                     lineNumber++;
-                    positionNumber = 1;
+                    positionNumber = 0;
                 }
 
                 consumeChar = StateFunction(currentChar, out token);
@@ -141,8 +153,8 @@ namespace VSS.Compiler.Lexer
                     // we managed to grab a token, so we should clear our state and return 
                     // the token 
                     ClearState();
-                    token.PositionNumber = positionNumber;
-                    token.LineNumber = lineNumber;
+                    token.PositionNumber = currentLexedPosition;
+                    token.LineNumber = currentLineNumber;
 
                     return token;
                 }
@@ -158,8 +170,8 @@ namespace VSS.Compiler.Lexer
                 if(token!= null)
                 {
                     ClearState();
-                    token.PositionNumber = positionNumber;
-                    token.LineNumber = lineNumber;
+                    token.PositionNumber = currentLexedPosition;
+                    token.LineNumber = currentLineNumber;
                 }
                 return token;
             }
@@ -181,6 +193,8 @@ namespace VSS.Compiler.Lexer
 
             if(char.IsLetter(c) || c == '_') 
             {
+                MarkPosition(); 
+
                 // we bumped into a letter
                 currentValue.Append(c);
 
@@ -192,44 +206,75 @@ namespace VSS.Compiler.Lexer
             }
             else if(char.IsDigit(c))
             {
+                MarkPosition();
+
                 // we got a first digit, let's not consume it first and let the 
                 // state function do that
                 StateFunction = NumberState;
 
                 return false;
             }
+            else if (c == '"')
+            {
+                MarkPosition();
+
+                // the start of a string
+                StateFunction = StringState;
+
+                // consume this character
+                return true;
+            }
             else if(c == '+')
             {
-                currentValue.Append(c);
-                token = new LexedToken(LexedTokenType.OperatorPlus, currentValue.ToString());
+                token = SingularToken(LexedTokenType.OperatorPlus, c);
                 return true;
             }
             else if (c == '-')
             {
-                currentValue.Append(c);
-                token = new LexedToken(LexedTokenType.OperatorMinus, currentValue.ToString());
+                token = SingularToken(LexedTokenType.OperatorMinus, c);
                 return true;
             }
             else if (c == '*')
             {
-                currentValue.Append(c);
-                token = new LexedToken(LexedTokenType.OperatorMultiply, currentValue.ToString());
+                token = SingularToken(LexedTokenType.OperatorMultiply, c);
                 return true;
             }
             else if (c == '/')
             {
-                currentValue.Append(c);
-                token = new LexedToken(LexedTokenType.OperatorDivide, currentValue.ToString());
+                token = SingularToken(LexedTokenType.OperatorDivide, c);
+                return true;
+            }
+            else if (c == '(')
+            {
+                token = SingularToken(LexedTokenType.OpenParen, c);
+                return true;
+            }
+            else if (c == ')')
+            {
+                token = SingularToken(LexedTokenType.CloseParen, c);
+                return true;
+            }
+            else if (c == '{')
+            {
+                token = SingularToken(LexedTokenType.OpenBraces, c);
+                return true;
+            }
+            else if (c == '}')
+            {
+                token = SingularToken(LexedTokenType.CloseBraces, c);
                 return true;
             }
             else if (c == '=')
             {
+                MarkPosition();
+
                 // TODO: Transition to a state to get the == 
                 currentValue.Append(c);
                 token = new LexedToken(LexedTokenType.OperatorEqual, currentValue.ToString());
                 return true;
             }
 
+            MarkPosition();
             currentValue.Append(c);
             token = new LexedToken(LexedTokenType.Invalid, currentValue.ToString());
             return true;
@@ -293,6 +338,74 @@ namespace VSS.Compiler.Lexer
                 // don't consume the character
                 return false;
             }
+        }
+
+        private bool StringState(char c, out LexedToken token)
+        {
+            token = null;
+
+            if(c == '\\')
+            {
+                // we gonna get the escaped character from the next state
+                StateFunction = EscapeStringState;
+
+                // consume this slash
+                return true;
+            }
+            else if(c == '"')
+            {
+                // return the built string
+                token = new LexedToken(LexedTokenType.String, currentValue.ToString());
+
+                // consume this closing quotes
+                return true;
+            }
+
+            // build up the string
+            currentValue.Append(c);
+            return true;
+        }
+
+        private bool EscapeStringState(char c, out LexedToken token)
+        {
+            token = null;
+
+            if(escapeLookup.ContainsKey(c))
+            {
+                // we support this escape character
+                currentValue.Append(escapeLookup[c]);
+
+                // set the state back to string builder
+                StateFunction = StringState;
+
+                // consume this character
+                return true;
+            }
+            else
+            {
+                // TODO: throw an error possibly
+                // right now, we just consume it and do nothing
+                StateFunction = StringState;
+                return true;
+            }
+            
+        }
+
+        /// <summary>
+        /// Creates a token of a single character.
+        /// </summary>
+        private LexedToken SingularToken(LexedTokenType type, char c)
+        {
+            MarkPosition();
+            currentValue.Append(c);
+
+            return new LexedToken(type, c.ToString());
+        }
+
+        private void MarkPosition()
+        {
+            currentLexedPosition = positionNumber;
+            currentLineNumber = lineNumber;
         }
     }
 }

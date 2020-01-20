@@ -37,7 +37,7 @@ namespace VSS.Compiler.Lexer
 
         public override string ToString()
         {
-            return $"({Type}, {Value})";
+            return $"{LineNumber}:{PositionNumber} - ({Type}, {Value})";
         }
     }
 }
