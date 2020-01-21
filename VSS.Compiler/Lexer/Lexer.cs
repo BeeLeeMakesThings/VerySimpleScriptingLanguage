@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -383,9 +384,10 @@ namespace VSS.Compiler.Lexer
             }
             else
             {
-                // TODO: throw an error possibly
-                // right now, we just consume it and do nothing
-                StateFunction = StringState;
+                // return an invalid token and consume this
+                MarkPosition();
+                token = new LexedToken(LexedTokenType.Invalid, "\\" + c.ToString());
+
                 return true;
             }
             
@@ -406,6 +408,19 @@ namespace VSS.Compiler.Lexer
         {
             currentLexedPosition = positionNumber;
             currentLineNumber = lineNumber;
+        }
+    
+        public IEnumerable<LexedToken> GetTokens()
+        {
+            LexedToken token;
+            do
+            {
+                token = GetNextToken();
+                if (token == null)
+                    yield break;
+
+                yield return token;
+            } while (token.Type != LexedTokenType.Invalid);
         }
     }
 }

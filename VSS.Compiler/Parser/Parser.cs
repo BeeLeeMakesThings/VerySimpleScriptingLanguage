@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using VSS.Compiler.Lexer;
 
 namespace VSS.Compiler.Parser
 {
@@ -9,6 +10,19 @@ namespace VSS.Compiler.Parser
     /// </summary>
     public class Parser
     {
+        private readonly Stack<ParserState> stack;
+        private readonly IEnumerable<LexedToken> tokens;
 
+        public Parser(IEnumerable<LexedToken> tokens)
+        {
+            this.tokens = tokens;
+
+            stack = new Stack<ParserState>();
+        }
+
+        public ASTNode BuildAST()
+        {
+
+        }
     }
 }
