@@ -25,6 +25,8 @@ namespace VSS.Compiler.Lexer
         
         String,
 
+        Semicolon,
+
         Invalid
     }
 }

@@ -42,3 +42,28 @@ while(x<10) {
 }
 ```
 
+# Grammar
+
+```
+
+LHS := id |     # x
+       id id    # int x
+
+RHS := id |       # x
+       ( RHS ) |  # (x)
+       
+
+
+# Abbreviations/Terminals
+# id: identifier
+# eps: empty string
+
+```
+
+# Grammar - Cleaned up and Factorised
+
+```
+
+LHS := id LHS2
+LHS2 := id | eps
+```

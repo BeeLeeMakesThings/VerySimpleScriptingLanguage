@@ -265,6 +265,11 @@ namespace VSS.Compiler.Lexer
                 token = SingularToken(LexedTokenType.CloseBraces, c);
                 return true;
             }
+            else if (c == ';')
+            {
+                token = SingularToken(LexedTokenType.Semicolon, c);
+                return true;
+            }
             else if (c == '=')
             {
                 MarkPosition();

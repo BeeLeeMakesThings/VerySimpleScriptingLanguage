@@ -11,5 +11,11 @@ namespace VSS.Compiler.Parser
         public ParserStateFunction State { get; set; }
 
         public ASTNode Node { get; set; }
+
+        public ParserState(ASTNode node, ParserStateFunction state)
+        {
+            State = state;
+            Node = node;
+        }
     }
 }
